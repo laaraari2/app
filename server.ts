@@ -12,6 +12,7 @@ import { tenantMiddleware } from './src/middleware/tenant.middleware';
 import { errorHandler } from './src/middleware/error.middleware';
 import { migrator } from './src/db/migrator';
 import { seedDatabase } from './src/db/seeders';
+import { db } from './src/db/store';
 
 
 async function startServer() {
@@ -31,12 +32,14 @@ registerServices();
 
   // 2. Run Migrations & Seed Database on startup
   try {
+    await db.initializePersistence();
     const migrations = await migrator.runMigrations();
     console.log(`✅ [Database] Applied ${migrations.length} migration(s)`);
     const seedCounts = await seedDatabase();
     console.log(`🌱 [Database] Seeded successfully (${seedCounts.tenantsCount} tenants, ${seedCounts.usersCount} users)`);
   } catch (err) {
     console.error('❌ [Database] Migration/Seed error:', err);
+    if (process.env.DATABASE_URL) throw err;
   }
 
   // 3. Attach Tenant Context Resolution Middleware
