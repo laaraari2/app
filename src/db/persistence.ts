@@ -66,7 +66,7 @@ export function persistEntry(collection: string, key: string, value: unknown): v
   const currentClient = client;
   void currentClient`
     INSERT INTO app_store_entries (collection, entry_key, value, updated_at)
-    VALUES (${collection}, ${key}, ${currentClient.json(value as postgres.JSONValue)}, CURRENT_TIMESTAMP)
+    VALUES (${collection}, ${key}, ${currentClient.json(value as any)}, CURRENT_TIMESTAMP)
     ON CONFLICT (collection, entry_key)
     DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
   `.catch((error: unknown) => {
