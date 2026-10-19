@@ -14,7 +14,7 @@ const envSchema = z.object({
   JWT_REFRESH_EXPIRATION: z.string().default('7d'),
   PASSWORD_SALT_ROUNDS: z.coerce.number().default(10),
 
-  DATABASE_URL: z.string().default('postgresql://eduvora_user:eduvora_secure_pass@localhost:5432/eduvora_db'),
+  DATABASE_URL: z.string().default(''),
   DB_HOST: z.string().default('localhost'),
   DB_PORT: z.coerce.number().default(5432),
   DB_NAME: z.string().default('eduvora_db'),

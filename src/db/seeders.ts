@@ -16,7 +16,18 @@ export async function seedDatabase(): Promise<{
   campusesCount: number;
   academicYearsCount: number;
 }> {
-  // Clear existing if re-seeding
+  // Never reset persistent data on a production restart. Seed only an empty store.
+  if (db.tenants.size > 0) {
+    return {
+      tenantsCount: db.tenants.size,
+      usersCount: db.users.size,
+      rolesCount: db.roles.size,
+      permissionsCount: db.permissions.size,
+      campusesCount: db.campuses.size,
+      academicYearsCount: db.academicYears.size,
+    };
+  }
+
   db.reset();
 
   // 1. Seed System Permissions
