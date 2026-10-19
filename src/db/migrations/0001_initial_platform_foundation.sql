@@ -1,0 +1,73 @@
+-- Migration 0001: Initial Platform Foundation
+-- Description: Creates core multi-tenant schema including tenants, users, roles, permissions, refresh_tokens, and audit_logs.
+
+CREATE TABLE IF NOT EXISTS tenants (
+  id VARCHAR(64) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  slug VARCHAR(100) NOT NULL UNIQUE,
+  domain VARCHAR(255) UNIQUE,
+  status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+  plan VARCHAR(30) NOT NULL DEFAULT 'STARTER',
+  settings JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS users (
+  id VARCHAR(64) PRIMARY KEY,
+  tenant_id VARCHAR(64) NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  email VARCHAR(255) NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  full_name VARCHAR(255) NOT NULL,
+  phone VARCHAR(50),
+  status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+  avatar_url TEXT,
+  last_login_at TIMESTAMP WITH TIME ZONE,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT unique_tenant_email UNIQUE (tenant_id, email)
+);
+
+CREATE TABLE IF NOT EXISTS roles (
+  id VARCHAR(64) PRIMARY KEY,
+  tenant_id VARCHAR(64) REFERENCES tenants(id) ON DELETE CASCADE,
+  code VARCHAR(50) NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  description TEXT,
+  is_system BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS permissions (
+  id VARCHAR(64) PRIMARY KEY,
+  code VARCHAR(100) NOT NULL UNIQUE,
+  module VARCHAR(50) NOT NULL,
+  description TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+  id VARCHAR(64) PRIMARY KEY,
+  user_id VARCHAR(64) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  tenant_id VARCHAR(64) NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  token_hash VARCHAR(255) NOT NULL,
+  expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  revoked_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id VARCHAR(64) PRIMARY KEY,
+  tenant_id VARCHAR(64) NOT NULL,
+  actor_id VARCHAR(64) NOT NULL,
+  actor_email VARCHAR(255) NOT NULL,
+  action VARCHAR(100) NOT NULL,
+  resource VARCHAR(100) NOT NULL,
+  target_id VARCHAR(64),
+  changes JSONB DEFAULT '{}'::jsonb,
+  ip_address VARCHAR(45),
+  user_agent TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);

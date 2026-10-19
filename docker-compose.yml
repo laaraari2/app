@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database Service
+  postgres:
+    image: postgres:16-alpine
+    container_name: eduvora_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: eduvora_db
+      POSTGRES_USER: eduvora_user
+      POSTGRES_PASSWORD: eduvora_secure_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./src/db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eduvora_user -d eduvora_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Eduvora Core Platform Service
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: eduvora_api
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://eduvora_user:eduvora_secure_pass@postgres:5432/eduvora_db
+      JWT_SECRET: eduvora_super_secret_jwt_key_production_grade_32chars_min
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
