@@ -1,3 +1,4 @@
+import { PersistentMap, initializePersistence } from './persistence';
 import { Tenant, User, Role, Permission, RefreshToken, AuditLog } from '../types/auth';
 import { School, Campus, Building, Floor, Room } from '../types/organization';
 import { PlatformSettings, TenantSettings, CampusSettings, AcademicYearSettings } from '../types/settings';
@@ -46,66 +47,74 @@ import {
 export class DataStore {
   private static instance: DataStore;
 
-  public tenants: Map<string, Tenant> = new Map();
-  public users: Map<string, User> = new Map();
-  public roles: Map<string, Role> = new Map();
-  public permissions: Map<string, Permission> = new Map();
-  public refreshTokens: Map<string, RefreshToken> = new Map();
-  public auditLogs: Map<string, AuditLog> = new Map();
+  public tenants: Map<string, Tenant> = new PersistentMap('tenants');
+  public users: Map<string, User> = new PersistentMap('users');
+  public roles: Map<string, Role> = new PersistentMap('roles');
+  public permissions: Map<string, Permission> = new PersistentMap('permissions');
+  public refreshTokens: Map<string, RefreshToken> = new PersistentMap('refreshTokens');
+  public auditLogs: Map<string, AuditLog> = new PersistentMap('auditLogs');
 
   // Workflow & Domain Events Collections
-  public outboxMessages: Map<string, OutboxMessage> = new Map();
-  public domainEventLogs: Map<string, DomainEvent> = new Map();
-  public workflowDefinitions: Map<string, WorkflowDefinition> = new Map();
-  public workflowExecutions: Map<string, WorkflowExecution> = new Map();
+  public outboxMessages: Map<string, OutboxMessage> = new PersistentMap('outboxMessages');
+  public domainEventLogs: Map<string, DomainEvent> = new PersistentMap('domainEventLogs');
+  public workflowDefinitions: Map<string, WorkflowDefinition> = new PersistentMap('workflowDefinitions');
+  public workflowExecutions: Map<string, WorkflowExecution> = new PersistentMap('workflowExecutions');
   public processedEventIds: Set<string> = new Set();
 
   // Academic Domain Collections
-  public academicYears: Map<string, AcademicYear> = new Map();
-  public academicTerms: Map<string, AcademicTerm> = new Map();
-  public educationalStages: Map<string, EducationalStage> = new Map();
-  public gradeLevels: Map<string, GradeLevel> = new Map();
-  public classGroups: Map<string, ClassGroup> = new Map();
-  public subjectCategories: Map<string, SubjectCategory> = new Map();
-  public subjects: Map<string, Subject> = new Map();
-  public curriculums: Map<string, Curriculum> = new Map();
-  public teachingAssignments: Map<string, TeachingAssignment> = new Map();
-  public timetableSlots: Map<string, TimetableSlot> = new Map();
-  public schoolCalendars: Map<string, SchoolCalendar> = new Map();
-  public academicEvents: Map<string, AcademicEvent> = new Map();
+  public academicYears: Map<string, AcademicYear> = new PersistentMap('academicYears');
+  public academicTerms: Map<string, AcademicTerm> = new PersistentMap('academicTerms');
+  public educationalStages: Map<string, EducationalStage> = new PersistentMap('educationalStages');
+  public gradeLevels: Map<string, GradeLevel> = new PersistentMap('gradeLevels');
+  public classGroups: Map<string, ClassGroup> = new PersistentMap('classGroups');
+  public subjectCategories: Map<string, SubjectCategory> = new PersistentMap('subjectCategories');
+  public subjects: Map<string, Subject> = new PersistentMap('subjects');
+  public curriculums: Map<string, Curriculum> = new PersistentMap('curriculums');
+  public teachingAssignments: Map<string, TeachingAssignment> = new PersistentMap('teachingAssignments');
+  public timetableSlots: Map<string, TimetableSlot> = new PersistentMap('timetableSlots');
+  public schoolCalendars: Map<string, SchoolCalendar> = new PersistentMap('schoolCalendars');
+  public academicEvents: Map<string, AcademicEvent> = new PersistentMap('academicEvents');
 
   // Admissions Domain Collections
-  public admissionCampaigns: Map<string, AdmissionCampaign> = new Map();
-  public registrationPeriods: Map<string, RegistrationPeriod> = new Map();
-  public applicants: Map<string, Applicant> = new Map();
-  public applicantDocuments: Map<string, ApplicantDocument> = new Map();
-  public applicantInterviews: Map<string, ApplicantInterview> = new Map();
-  public applicantExams: Map<string, ApplicantExam> = new Map();
-  public admissionDecisions: Map<string, AdmissionDecision> = new Map();
-  public enrolledStudents: Map<string, EnrolledStudent> = new Map();
-  public notifications: Map<string, NotificationPayload> = new Map();
+  public admissionCampaigns: Map<string, AdmissionCampaign> = new PersistentMap('admissionCampaigns');
+  public registrationPeriods: Map<string, RegistrationPeriod> = new PersistentMap('registrationPeriods');
+  public applicants: Map<string, Applicant> = new PersistentMap('applicants');
+  public applicantDocuments: Map<string, ApplicantDocument> = new PersistentMap('applicantDocuments');
+  public applicantInterviews: Map<string, ApplicantInterview> = new PersistentMap('applicantInterviews');
+  public applicantExams: Map<string, ApplicantExam> = new PersistentMap('applicantExams');
+  public admissionDecisions: Map<string, AdmissionDecision> = new PersistentMap('admissionDecisions');
+  public enrolledStudents: Map<string, EnrolledStudent> = new PersistentMap('enrolledStudents');
+  public notifications: Map<string, NotificationPayload> = new PersistentMap('notifications');
 
   // Organization Structure
-  public schools: Map<string, School> = new Map();
-  public campuses: Map<string, Campus> = new Map();
-  public buildings: Map<string, Building> = new Map();
-  public floors: Map<string, Floor> = new Map();
-  public rooms: Map<string, Room> = new Map();
+  public schools: Map<string, School> = new PersistentMap('schools');
+  public campuses: Map<string, Campus> = new PersistentMap('campuses');
+  public buildings: Map<string, Building> = new PersistentMap('buildings');
+  public floors: Map<string, Floor> = new PersistentMap('floors');
+  public rooms: Map<string, Room> = new PersistentMap('rooms');
 
   // Refactored Settings Sections
-  public platformSettings: Map<string, PlatformSettings> = new Map();
-  public tenantSettings: Map<string, TenantSettings> = new Map();
-  public campusSettings: Map<string, CampusSettings> = new Map();
-  public academicYearSettings: Map<string, AcademicYearSettings> = new Map();
+  public platformSettings: Map<string, PlatformSettings> = new PersistentMap('platformSettings');
+  public tenantSettings: Map<string, TenantSettings> = new PersistentMap('tenantSettings');
+  public campusSettings: Map<string, CampusSettings> = new PersistentMap('campusSettings');
+  public academicYearSettings: Map<string, AcademicYearSettings> = new PersistentMap('academicYearSettings');
 
   // People Domain Collections
-  public staffMembers: Map<string, StaffMember> = new Map();
-  public teacherProfiles: Map<string, TeacherProfile> = new Map();
-  public studentProfiles: Map<string, StudentProfile> = new Map();
-  public guardianProfiles: Map<string, GuardianProfile> = new Map();
-  public personRelationships: Map<string, PersonRelationship> = new Map();
+  public staffMembers: Map<string, StaffMember> = new PersistentMap('staffMembers');
+  public teacherProfiles: Map<string, TeacherProfile> = new PersistentMap('teacherProfiles');
+  public studentProfiles: Map<string, StudentProfile> = new PersistentMap('studentProfiles');
+  public guardianProfiles: Map<string, GuardianProfile> = new PersistentMap('guardianProfiles');
+  public personRelationships: Map<string, PersonRelationship> = new PersistentMap('personRelationships');
 
   private constructor() {}
+
+  public async initializePersistence(): Promise<void> {
+    const collections: Record<string, Map<string, unknown>> = {};
+    for (const [name, value] of Object.entries(this)) {
+      if (value instanceof Map) collections[name] = value as Map<string, unknown>;
+    }
+    await initializePersistence(collections);
+  }
 
   public static getInstance(): DataStore {
     if (!DataStore.instance) {
