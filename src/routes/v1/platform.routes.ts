@@ -5,6 +5,8 @@ import { pool } from '../../db/postgres';
 import { authenticate } from '../../middleware/auth.middleware';
 import { AuthenticatedRequest } from '../../types/auth';
 import { ForbiddenError } from '../../errors/AppError';
+import { env } from '../../config/env';
+import { randomUUID } from 'crypto';
 
 const router = Router();
 
@@ -35,6 +37,104 @@ function createInstitutionSlug(name: string): string {
 
   return slug || 'institution';
 }
+
+router.post('/institutions/logo', async (req, res) => {
+  const { contentType, base64 } = req.body ?? {};
+  const allowedTypes: Record<string, string> = {
+    'image/png': 'png',
+    'image/jpeg': 'jpg',
+    'image/webp': 'webp',
+  };
+
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
+    return res.status(503).json({
+      success: false,
+      message: 'رفع اللوغو غير مفعّل في إعدادات الخادم حالياً.',
+    });
+  }
+
+  if (
+    typeof contentType !== 'string' ||
+    !Object.prototype.hasOwnProperty.call(allowedTypes, contentType) ||
+    typeof base64 !== 'string' ||
+    !base64.length ||
+    base64.length > Math.ceil((2 * 1024 * 1024 * 4) / 3) + 8 ||
+    !/^[A-Za-z0-9+/]+={0,2}$/.test(base64)
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: 'الملف غير صالح. استعمل PNG أو JPG أو WebP بحجم أقصى 2 MB.',
+    });
+  }
+
+  const fileBuffer = Buffer.from(base64, 'base64');
+  if (fileBuffer.length === 0 || fileBuffer.length > 2 * 1024 * 1024) {
+    return res.status(400).json({
+      success: false,
+      message: 'حجم اللوغو خاصو ما يفوتش 2 MB.',
+    });
+  }
+
+  const isPng =
+    fileBuffer.length >= 8 &&
+    fileBuffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  const isJpeg =
+    fileBuffer.length >= 3 &&
+    fileBuffer[0] === 0xff &&
+    fileBuffer[1] === 0xd8 &&
+    fileBuffer[2] === 0xff;
+  const isWebp =
+    fileBuffer.length >= 12 &&
+    fileBuffer.toString('ascii', 0, 4) === 'RIFF' &&
+    fileBuffer.toString('ascii', 8, 12) === 'WEBP';
+
+  if (
+    (contentType === 'image/png' && !isPng) ||
+    (contentType === 'image/jpeg' && !isJpeg) ||
+    (contentType === 'image/webp' && !isWebp)
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: 'محتوى الملف لا يطابق صيغة الصورة المختارة.',
+    });
+  }
+
+  const extension = allowedTypes[contentType];
+  const objectName = `${randomUUID()}.${extension}`;
+  const storageUrl = `${env.SUPABASE_URL.replace(/\\/$/, '')}/storage/v1/object/institution-logos/${objectName}`;
+
+  try {
+    const storageResponse = await fetch(storageUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+        apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+        'Content-Type': contentType,
+        'x-upsert': 'false',
+      },
+      body: fileBuffer,
+    });
+
+    if (!storageResponse.ok) {
+      return res.status(502).json({
+        success: false,
+        message: 'تعذر رفع اللوغو إلى التخزين. تحقق من إعدادات Supabase.',
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      data: {
+        logo_url: `${env.SUPABASE_URL.replace(/\\/$/, '')}/storage/v1/object/public/institution-logos/${objectName}`,
+      },
+    });
+  } catch {
+    return res.status(502).json({
+      success: false,
+      message: 'تعذر الاتصال بخدمة تخزين اللوغو.',
+    });
+  }
+});
 
 router.get('/institutions', async (_req, res) => {
 const result = await pool.query(`
