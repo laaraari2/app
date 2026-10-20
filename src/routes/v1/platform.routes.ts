@@ -75,6 +75,30 @@ router.post('/institutions/logo', async (req, res) => {
     });
   }
 
+  const isPng =
+    fileBuffer.length >= 8 &&
+    fileBuffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  const isJpeg =
+    fileBuffer.length >= 3 &&
+    fileBuffer[0] === 0xff &&
+    fileBuffer[1] === 0xd8 &&
+    fileBuffer[2] === 0xff;
+  const isWebp =
+    fileBuffer.length >= 12 &&
+    fileBuffer.toString('ascii', 0, 4) === 'RIFF' &&
+    fileBuffer.toString('ascii', 8, 12) === 'WEBP';
+
+  if (
+    (contentType === 'image/png' && !isPng) ||
+    (contentType === 'image/jpeg' && !isJpeg) ||
+    (contentType === 'image/webp' && !isWebp)
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: 'محتوى الملف لا يطابق صيغة الصورة المختارة.',
+    });
+  }
+
   const extension = allowedTypes[contentType];
   const objectName = `${randomUUID()}.${extension}`;
   const storageUrl = `${env.SUPABASE_URL.replace(/\\/$/, '')}/storage/v1/object/institution-logos/${objectName}`;
