@@ -7,6 +7,7 @@ import { tenantRepository } from '../repositories/tenant.repository';
 import { roleRepository } from '../repositories/role.repository';
 import { JWTPayload, RefreshToken, User } from '../types/auth';
 import { AuthenticationError, NotFoundError, ForbiddenError } from '../errors/AppError';
+import { DEFAULT_ROLE_PERMISSIONS } from '../db/schema';
 
 export interface LoginResult {
   user: Omit<User, 'passwordHash'>;
@@ -151,8 +152,7 @@ export class AuthService {
 
   public async resolvePermissionsForUser(user: User): Promise<string[]> {
     if (user.roles.includes('SUPER_ADMIN')) {
-      const allPerms = await roleRepository.findAllPermissions();
-      return allPerms.map(p => p.code);
+      return DEFAULT_ROLE_PERMISSIONS.SUPER_ADMIN || [];
     }
 
     const permissionSet = new Set<string>();
