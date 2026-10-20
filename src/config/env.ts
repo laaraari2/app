@@ -1,6 +1,8 @@
 import { z } from 'zod';
+
 import dotenv from 'dotenv';
 
+dotenv.config({ path: '.env.local' });
 dotenv.config();
 
 const envSchema = z.object({
@@ -9,11 +11,12 @@ const envSchema = z.object({
   API_PREFIX: z.string().default('/api/v1'),
   APP_NAME: z.string().default('Eduvora Core Platform'),
 
-  JWT_SECRET: z.string().min(16).default('eduvora_super_secret_jwt_key_production_grade_32chars_min'),
+ JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   JWT_ACCESS_EXPIRATION: z.string().default('15m'),
   JWT_REFRESH_EXPIRATION: z.string().default('7d'),
   PASSWORD_SALT_ROUNDS: z.coerce.number().default(10),
-
+SUPABASE_URL: z.string().url().optional(),
+SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
   DATABASE_URL: z.string().default('postgresql://eduvora_user:eduvora_secure_pass@localhost:5432/eduvora_db'),
   DB_HOST: z.string().default('localhost'),
   DB_PORT: z.coerce.number().default(5432),

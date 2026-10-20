@@ -12,6 +12,7 @@ import settingsRoutes from './settings.routes';
 import admissionsRoutes from '../../domains/admissions/routes';
 import peopleRoutes from '../../domains/people/routes';
 import attendanceRoutes from '../../domains/attendance/routes';
+import platformRoutes from './platform.routes';
 
 const router = Router();
 
@@ -21,7 +22,7 @@ router.use('/tenants', tenantRoutes);
 router.use('/users', userRoutes);
 router.use('/roles', roleRoutes);
 router.use('/audit-logs', auditRoutes);
-
+router.use('/platform', platformRoutes);
 router.use('/academic-years', academicYearRoutes);
 router.use('/academic', academicDomainRoutes);
 router.use('/organization', organizationRoutes);

@@ -10,8 +10,8 @@ import { registerServices } from './src/bootstrap/services';
 import apiV1Router from './src/routes/v1';
 import { tenantMiddleware } from './src/middleware/tenant.middleware';
 import { errorHandler } from './src/middleware/error.middleware';
-import { migrator } from './src/db/migrator';
-import { seedDatabase } from './src/db/seeders';
+
+
 
 
 async function startServer() {
@@ -30,14 +30,7 @@ registerServices();
   app.use(express.urlencoded({ extended: true }));
 
   // 2. Run Migrations & Seed Database on startup
-  try {
-    const migrations = await migrator.runMigrations();
-    console.log(`✅ [Database] Applied ${migrations.length} migration(s)`);
-    const seedCounts = await seedDatabase();
-    console.log(`🌱 [Database] Seeded successfully (${seedCounts.tenantsCount} tenants, ${seedCounts.usersCount} users)`);
-  } catch (err) {
-    console.error('❌ [Database] Migration/Seed error:', err);
-  }
+ 
 
   // 3. Attach Tenant Context Resolution Middleware
   app.use(tenantMiddleware as any);

@@ -329,12 +329,15 @@ export const AcademicPage: React.FC = () => {
     e.preventDefault();
     if (!newSubjectForm.nameAr.trim() || !newSubjectForm.code.trim()) return;
 
-    const created: SubjectItem = {
-      id: `subj-${Date.now()}`,
-      nameAr: newSubjectForm.nameAr.trim(),
-      nameFr: newSubjectForm.nameFr.trim() || newSubjectForm.nameAr.trim(),
-      code: newSubjectForm.code.trim().toUpperCase(),
-    };
+   const created: SubjectItem = {
+  id: `subj-${Date.now()}`,
+  nameAr: newSubjectForm.nameAr.trim(),
+  nameFr: newSubjectForm.nameFr.trim() || newSubjectForm.nameAr.trim(),
+  code: newSubjectForm.code.trim().toUpperCase(),
+  coefficient: 1,
+  weeklyHours: 1,
+  category: 'SCIENTIFIC',
+};
 
     setSubjectsList((prev) => [...prev, created]);
     setShowAddSubjectModal(false);
@@ -398,6 +401,9 @@ export const AcademicPage: React.FC = () => {
   const [showAddAssignmentModal, setShowAddAssignmentModal] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<ClassAssignmentItem | null>(null);
   const [deletingAssignment, setDeletingAssignment] = useState<ClassAssignmentItem | null>(null);
+  const [editTeacherId, setEditTeacherId] = useState<string>('CUSTOM');
+const [editCycleId, setEditCycleId] = useState<string>('c4');
+const [editLevel, setEditLevel] = useState<string>('ALL');
 
   // Teachers Directory State (fetched from Teachers Table)
   const [teachersList, setTeachersList] = useState<TeacherRecord[]>(TEACHERS_DIRECTORY);

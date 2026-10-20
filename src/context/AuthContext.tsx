@@ -6,6 +6,7 @@ import { apiClient } from '../lib/apiClient';
 interface AuthContextType {
   currentUser: User | null;
   isAuthenticated: boolean;
+  login: (email: string, password: string) => Promise<void>;
   activeRole: UserRole;
   switchRole: (newRole: UserRole) => void;
   checkPermission: (permission: Permission | Permission[]) => boolean;
@@ -31,7 +32,10 @@ const DEFAULT_USER: User = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(DEFAULT_USER);
+const [currentUser, setCurrentUser] = useState<User | null>(() => {
+  const savedUser = localStorage.getItem('eduvora_user');
+  return savedUser ? JSON.parse(savedUser) : null;
+});
   const [activeRole, setActiveRole] = useState<UserRole>('SCHOOL_OWNER');
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([
     {
@@ -101,24 +105,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAuditLogs((prev) => [newLog, ...prev]);
   };
 
-  const logout = () => {
-    logActivity('LOGOUT', 'AUTH', 'Déconnexion utilisateur');
-    setCurrentUser(null);
-  };
+const login = async (email: string, password: string): Promise<void> => {
+  const response = await fetch('/api/v1/auth/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Eduvora-Platform': 'SaaS-Enterprise-V2',
+    },
+    body: JSON.stringify({ email, password }),
+  });
+
+  const result = await response.json();
+
+  if (!response.ok || result.status !== 'success') {
+    throw new Error(result.message || 'Email ou mot de passe incorrect.');
+  }
+
+  const { user, accessToken } = result.data;
+
+  if (!user || !accessToken) {
+    throw new Error('Réponse invalide du serveur.');
+  }
+
+setCurrentUser(user);
+setActiveRole(user.role || user.roles?.[0] || 'USER');
+console.log('User role:', user.role, 'User roles:', user.roles);
+
+localStorage.setItem('eduvora_user', JSON.stringify(user));
+localStorage.setItem('eduvora_access_token', accessToken);
+
+apiClient.setAuthToken(accessToken);
+};
+
+ const logout = () => {
+  localStorage.removeItem('eduvora_user');
+  localStorage.removeItem('eduvora_access_token');
+
+  setCurrentUser(null);
+  setActiveRole(null);
+  apiClient.setAuthToken('');
+};
 
   return (
-    <AuthContext.Provider
-      value={{
-        currentUser,
-        isAuthenticated: !!currentUser,
-        activeRole,
-        switchRole,
-        checkPermission,
-        logout,
-        auditLogs,
-        logActivity,
-      }}
-    >
+   
+<AuthContext.Provider
+  value={{
+    login,
+    currentUser,
+    isAuthenticated: !!currentUser,
+    activeRole,
+    switchRole,
+    checkPermission,
+    logout,
+    auditLogs,
+    logActivity,
+  }}
+>
+
       {children}
     </AuthContext.Provider>
   );
