@@ -205,18 +205,43 @@ export function PlatformDashboardPage() {
       return;
     }
 
-    // The selected image is only previewed locally at this stage.
-    // Do not send a fake URL or claim the image was uploaded.
-    if (logoFile) {
-      setFormError(
-        'اختيار اللوغو خدام، ولكن رفع الصورة لـ Supabase Storage ما زال خاصو يتربط. حيّد الصورة مؤقتاً لإنشاء المؤسسة.',
-      );
-      return;
-    }
-
     setIsSaving(true);
 
     try {
+      let logoUrl: string | null = null;
+
+      if (logoFile) {
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onerror = () => reject(new Error('تعذر قراءة ملف اللوغو.'));
+          reader.onload = () => {
+            const result = typeof reader.result === 'string' ? reader.result : '';
+            const separator = result.indexOf(',');
+            if (separator < 0) {
+              reject(new Error('صيغة ملف اللوغو غير صالحة.'));
+              return;
+            }
+            resolve(result.slice(separator + 1));
+          };
+          reader.readAsDataURL(logoFile);
+        });
+
+        const uploadResponse = await fetch('/api/v1/platform/institutions/logo', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ contentType: logoFile.type, base64 }),
+        });
+        const uploadResult = await uploadResponse.json();
+
+        if (!uploadResponse.ok || !uploadResult.success || !uploadResult.data?.logo_url) {
+          throw new Error(uploadResult.message || 'تعذر رفع اللوغو.');
+        }
+        logoUrl = uploadResult.data.logo_url;
+      }
+
       const response = await fetch('/api/v1/platform/institutions', {
         method: 'POST',
         headers: {
@@ -231,6 +256,7 @@ export function PlatformDashboardPage() {
           phone: form.phone.trim(),
           address: form.address.trim(),
           city: form.city.trim(),
+          logo_url: logoUrl,
         }),
       });
 
@@ -600,11 +626,11 @@ export function PlatformDashboardPage() {
                   <input
                     id="institution-logo"
                     type="file"
-                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                    accept="image/png,image/jpeg,image/webp"
                     onChange={(e) => {
                       const file = e.target.files?.[0] ?? null;
 
-                      if (file && file.size > 2 * 1024 * 1024) {
+                      if (file && !['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {\n                        setFormError('الصيغ المقبولة هي PNG أو JPG أو WebP فقط.');\n                        e.target.value = '';\n                        setLogoFile(null);\n                        return;\n                      }\n\n                      if (file && file.size > 2 * 1024 * 1024) {
                         setFormError('حجم اللوغو خاصو ما يفوتش 2 MB.');
                         e.target.value = '';
                         setLogoFile(null);
@@ -617,7 +643,7 @@ export function PlatformDashboardPage() {
                     style={fieldStyle}
                   />
                   <p style={{ fontSize: 12, color: '#64748b' }}>
-                    PNG أو JPG أو WebP أو SVG، بحجم أقصى 2 MB.
+                    PNG أو JPG أو WebP، بحجم أقصى 2 MB.
                   </p>
 
                   {logoPreview && (
@@ -636,7 +662,7 @@ export function PlatformDashboardPage() {
                         }}
                       />
                       <p style={{ fontSize: 12, color: '#b45309' }}>
-                        هادي معاينة فقط؛ الصورة ما زالت ما ترفعاتش لـ Supabase.
+                        غادي يترفع اللوغو بشكل آمن إلى Supabase عند حفظ المؤسسة.
                       </p>
                       <button
                         type="button"
